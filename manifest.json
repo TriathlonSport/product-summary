@@ -18,7 +18,7 @@
   "dependencies": {
     "vtex.native-types": "0.x",
     "vtex.store-components": "3.x",
-    "vtex.product-summary": "2.90.2",
+    "vtex.product-summary": "2.x",
     "vtex.store-resources": "0.x",
     "vtex.product-summary-context": "0.x",
     "vtex.styleguide": "9.x",
