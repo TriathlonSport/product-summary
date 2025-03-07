@@ -8,5 +8,8 @@
         }
       }
     }
+  },
+  "logo-custom": {
+    "component": "Logo"
   }
 }
