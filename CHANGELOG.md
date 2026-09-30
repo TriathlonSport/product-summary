@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-09-30
+
 ### Changed
 
 - Sync `ProductSummaryImage` with `vtex.product-summary` v2.92.2 (fetchpriority limited to 2 images on desktop, fetchpriority on hover image, `role="group"` and `aria-label` on the image container), keeping the `title` attribute on the image.
