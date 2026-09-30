@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Sync `ProductSummaryImage` with `vtex.product-summary` v2.92.2 (fetchpriority limited to 2 images on desktop, fetchpriority on hover image, `role="group"` and `aria-label` on the image container), keeping the `title` attribute on the image.
+- Update `react-intl` to v3.
+- Keep only the messages used by this app.
+
+### Added
+
+- Site Editor messages for the `logo-custom` block (en, es, pt, pt-BR).
+
 ## [0.0.4] - 2025-03-07
 
 ## [0.0.3] - 2025-03-07
