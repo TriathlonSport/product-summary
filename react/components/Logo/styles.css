@@ -1,11 +1,21 @@
 .sizeDesktop {
-    max-width: 150px;
-    max-height: 75px;
-    min-width: 120px;
-  }
-  
-  .sizeMobile {
-    max-width: 90px;
-    max-height: 40px;
-    min-width: 72px;
-  }
+  display: block;
+  padding: 0 0.5rem;
+  max-width: 150px;
+  max-height: 75px;
+  min-width: 120px;
+}
+
+.sizeMobile {
+  max-width: 90px;
+  max-height: 40px;
+  min-width: 72px;
+}
+
+.logoLink {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.logoLink:focus:not(:focus-visible) {
+  outline: none;
+}
