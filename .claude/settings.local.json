@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npx eslint *)",
+      "Bash(npx jest *)",
+      "Bash(grep -iE \"eslint|vtex-test|tsc$\")",
+      "Bash(npx vtex-test-tools *)"
+    ]
+  }
+}

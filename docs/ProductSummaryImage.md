@@ -58,6 +58,8 @@
 | `height` | `object` | Defines the Product Summary Image height. | `undefined` |
 | `aspectRatio` | `object` | Defines the aspect ratio of the Product Summary Image, determining whether the image should be displayed in a square, portrait, landscape, or another format. The prop value should follow the [standard aspect ratio notation](https://en.wikipedia.org/wiki/Aspect_ratio_(image)), which consists of two numbers separated by a colon. For example, you can use `1:1` for a square format or `3:4` for an upright portrait. This prop will not work if the `width` or `height` props are configured. | `undefined` |
 | `maxHeight` | `object` | Sets the maximum height for the Product Summary Image. This prop will only work if the `width` or `height` props are configured. | `undefined` |
+| `imageScale` | `object` | Zooms the image in without changing the card size, cropping the excess (e.g. `1.15` = 15% zoom). | `1` |
+| `imageScaleFilter` | `object` | Applies `imageScale` only to products that belong to one of the given categories. When not set, `imageScale` applies to every product. | `undefined` |
 | `fetchpriority` | `string` | Sets the fetch priority hint to (`'high'`, `'low'`, `'auto'`, or `'byPosition'`). Choose `'byPosition'` to adjust the image fetch priority based on its rendering position within search results or lists. This prioritization optimizes performance by ensuring images are fetched based on their relevance in the context.  | `'byPosition'` |
 
 - `mainImageLabel` object:
@@ -105,7 +107,20 @@
 | `desktop` | `string` | Image maximum height for desktop users. |  `undefined` |
 | `mobile`  | `string` | Image maximum height for mobile users. | `undefined` |
 
-The `width`, `height`, `aspectRatio`, and `maxHeight` props use the [responsive values logic](https://github.com/vtex-apps/responsive-values#vtexresponsive-values).
+- `imageScale` object:
+
+| Prop name | Type | Description | Default value |
+| - | - | - | - |
+| `desktop` | `number` | Image zoom for desktop users. | `1` |
+| `mobile`  | `number` | Image zoom for mobile users. | `1` |
+
+- `imageScaleFilter` object:
+
+| Prop name | Type | Description | Default value |
+| - | - | - | - |
+| `categories` | `[string]` | Category paths (e.g. `/Hombre/Calzado/`). Subcategories also match. Comparison ignores case and accents. | `undefined` |
+
+The `width`, `height`, `aspectRatio`, `maxHeight`, and `imageScale` props use the [responsive values logic](https://github.com/vtex-apps/responsive-values#vtexresponsive-values).
 
 ## Customization
 

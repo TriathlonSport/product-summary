@@ -75,6 +75,101 @@ function getImageSrc({
   return src
 }
 
+/** Pixel densities offered in srcSet, so the browser picks the one matching
+ * the screen (e.g. Windows at 125%/150% or Retina) before downloading,
+ * avoiding upscaled, blurry images without re-downloads after hydration */
+const SRC_SET_DENSITIES = [1, 1.5, 2, 2.5]
+
+/** On desktop, even 1x screens get a 2x image: VTEX's resized 300px JPEGs
+ * look soft at 1:1, while a browser-downscaled 600px one stays crisp */
+const DESKTOP_MIN_DENSITY = 2
+
+type GetImageSrcSetParams = Omit<GetImageSrcParams, 'dpi'> & {
+  minDensity?: number
+}
+
+function getImageSrcSet({
+  src,
+  width,
+  height,
+  aspectRatio,
+  minDensity = 1,
+}: GetImageSrcSetParams) {
+  if (!src) {
+    return undefined
+  }
+
+  let getUrlForDensity: (density: number) => string | undefined
+
+  if (width || height) {
+    getUrlForDensity = (density) =>
+      changeImageUrlSize(
+        src,
+        Math.round(width * density),
+        Math.round(height * density)
+      )
+  } else if (aspectRatio) {
+    getUrlForDensity = (density) =>
+      imageUrl(
+        src,
+        Math.round(DEFAULT_SIZE * density),
+        Math.round(MAX_SIZE * density),
+        aspectRatio
+      )
+  } else {
+    return undefined
+  }
+
+  return SRC_SET_DENSITIES.map(
+    (density) =>
+      `${getUrlForDensity(Math.max(density, minDensity))} ${density}x`
+  ).join(', ')
+}
+
+type ImageScaleFilter = {
+  /** Category paths, e.g. "/Hombre/Calzado/". Matches subcategories too */
+  categories?: string[]
+}
+
+type ProductWithCategoryData = {
+  categories?: string[]
+}
+
+/** Lowercases, removes accents and wraps in slashes, so "Niños/Calzado"
+ * and "/ninos/calzado/" compare equal */
+function normalizeCategoryPath(path: string) {
+  const normalized = path
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .trim()
+    .toLowerCase()
+
+  return `/${normalized.replace(/^\/+|\/+$/g, '')}/`
+}
+
+function matchesImageScaleFilter(
+  product: ProductWithCategoryData | undefined,
+  filter: ImageScaleFilter | undefined
+) {
+  const { categories = [] } = filter ?? {}
+
+  if (categories.length === 0) {
+    return true
+  }
+
+  const productCategories = (product?.categories ?? []).map(
+    normalizeCategoryPath
+  )
+
+  return categories.some((category) => {
+    const normalizedCategory = normalizeCategoryPath(category)
+
+    return productCategories.some((productCategory) =>
+      productCategory.startsWith(normalizedCategory)
+    )
+  })
+}
+
 type GetHoverImageParams = {
   images: ProductSummaryTypes.SKU['images']
   hoverImage?: HoverImage
@@ -120,9 +215,19 @@ type GetStyleParams = {
   height: number
   aspectRatio?: string | number
   maxHeight?: string
+  scale?: number
 }
 
-function getStyle({ width, height, aspectRatio, maxHeight }: GetStyleParams) {
+function getStyle({
+  width,
+  height,
+  aspectRatio,
+  maxHeight,
+  scale,
+}: GetStyleParams) {
+  const scaleStyle: React.CSSProperties =
+    scale && scale !== 1 ? { transform: `scale(${scale})` } : {}
+
   if (width || height) {
     return {
       width: '100%',
@@ -130,6 +235,7 @@ function getStyle({ width, height, aspectRatio, maxHeight }: GetStyleParams) {
       objectFit: 'contain',
       maxHeight: 'unset',
       maxWidth: width,
+      ...scaleStyle,
     } as React.CSSProperties
   }
 
@@ -139,10 +245,11 @@ function getStyle({ width, height, aspectRatio, maxHeight }: GetStyleParams) {
       height: '100%',
       objectFit: 'contain',
       maxHeight: maxHeight ?? 'unset',
+      ...scaleStyle,
     } as React.CSSProperties
   }
 
-  return undefined
+  return scale && scale !== 1 ? scaleStyle : undefined
 }
 
 type CollectionWrapperProps = {
@@ -220,6 +327,7 @@ interface ImageProps {
   className: string
   aspectRatio?: string | number
   maxHeight?: string
+  scale?: number
   fetchpriority?: 'high' | 'low' | 'auto'
 }
 
@@ -232,6 +340,7 @@ function Image({
   className,
   aspectRatio,
   maxHeight,
+  scale,
   fetchpriority = 'auto',
 }: ImageProps) {
   const { isMobile } = useDevice()
@@ -248,7 +357,14 @@ function Image({
   return (
     <img
       src={getImageSrc({ src, width, height, dpi, aspectRatio })}
-      style={getStyle({ width, height, aspectRatio, maxHeight })}
+      srcSet={getImageSrcSet({
+        src,
+        width,
+        height,
+        aspectRatio,
+        minDensity: isMobile ? 1 : DESKTOP_MIN_DENSITY,
+      })}
+      style={getStyle({ width, height, aspectRatio, maxHeight, scale })}
       loading={fetchpriority === 'low' ? 'lazy' : 'eager'}
       alt={alt}
       title={alt}
@@ -294,6 +410,16 @@ interface Props {
   height?: ResponsiveValuesTypes.ResponsiveValue<number | string>
   aspectRatio?: ResponsiveValuesTypes.ResponsiveValue<string | number>
   maxHeight?: ResponsiveValuesTypes.ResponsiveValue<string>
+  /**
+   * Zooms the image in (e.g. 1.15) without changing the card size
+   * @default 1
+   */
+  imageScale?: ResponsiveValuesTypes.ResponsiveValue<number>
+  /**
+   * Limits imageScale to products in these categories.
+   * Applies to every product when not set
+   */
+  imageScaleFilter?: ImageScaleFilter
   classes?: CssHandlesTypes.CustomClasses<typeof CSS_HANDLES>
   fetchpriority?: 'high' | 'low' | 'auto' | 'byPosition'
 }
@@ -311,6 +437,8 @@ function ProductImage({
   height: heightProp,
   aspectRatio: aspectRatioProp,
   maxHeight: maxHeightProp,
+  imageScale: imageScaleProp,
+  imageScaleFilter,
   classes,
   fetchpriority = 'byPosition',
 }: Props) {
@@ -342,12 +470,21 @@ function ProductImage({
     heightProp: responsiveHeight,
     aspectRatioProp: aspectRatio,
     maxHeightProp: maxHeight,
+    imageScaleProp: imageScale,
   } = useResponsiveValues({
     widthProp,
     heightProp,
     aspectRatioProp,
     maxHeightProp,
+    imageScaleProp,
   })
+
+  const scale = matchesImageScaleFilter(
+    product as ProductWithCategoryData,
+    imageScaleFilter
+  )
+    ? Number(imageScale) || 1
+    : 1
 
   const imageClassName = classNames(
     // legacy class
@@ -474,7 +611,11 @@ function ProductImage({
           commertialOffer={commertialOffer}
           badgeText={badgeText}
         >
-          <div className={containerClassname}>
+          <div
+            className={containerClassname}
+            // Keeps the zoomed image inside the card
+            style={scale !== 1 ? { overflow: 'hidden' } : undefined}
+          >
             <Image
               src={
                 shouldDisplayPlaceholder ? (placeholder as string) : skuImageUrl
@@ -483,6 +624,7 @@ function ProductImage({
               height={height}
               aspectRatio={aspectRatio}
               maxHeight={maxHeight}
+              scale={scale}
               alt={name}
               className={imageClassname}
               onError={onError}
@@ -499,6 +641,7 @@ function ProductImage({
                 height={height}
                 aspectRatio={aspectRatio}
                 maxHeight={maxHeight}
+                scale={scale}
                 alt={name}
                 className={hoverImageClassname}
                 onError={onError}
